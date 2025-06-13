@@ -1,5 +1,3 @@
-# push:
-# 	powershell -Command "$env:PYTHONUTF8='1'; kaggle kernels push -p notebooks"
 git:
 	git add .
 	git commit -m "Update notebooks"
@@ -7,6 +5,9 @@ git:
 
 push: git
 	kaggle kernels push -p notebooks
+
+pull:
+	kaggle kernels pull merongetaneh/CoTools -p notebooks
 
 run:
 	kaggle kernels output your-kaggle-username/your-kernel-name --wait
