@@ -4,7 +4,7 @@ git:
 	git add .
 	git commit -m "Update notebooks"
 	git push
-
+ 
 push: git
 	kaggle kernels push -p notebooks
 
