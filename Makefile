@@ -7,7 +7,7 @@ push: git
 	kaggle kernels push -p notebooks
 
 pull:
-	kaggle kernels pull merongetaneh/CoTools -p notebooks
+	kaggle kernels pull merongetaneh/CoTools -p notebooks -m
 
 run:
 	kaggle kernels output your-kaggle-username/your-kernel-name --wait
