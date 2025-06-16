@@ -1,3 +1,7 @@
+# Define your actual Kaggle username and kernel name here
+USERNAME=merongetaneh
+KERNEL_NAME=CoTools
+
 git:
 	git add .
 	git commit -m "Update notebooks"
@@ -7,15 +11,16 @@ push: git
 	kaggle kernels push -p notebooks
 
 pull:
-	kaggle kernels pull merongetaneh/CoTools -p notebooks -m
+	kaggle kernels pull $(USERNAME)/$(KERNEL_NAME) -p notebooks -m
 
 run:
-	kaggle kernels output your-kaggle-username/your-kernel-name --wait
+	kaggle kernels output $(USERNAME)/$(KERNEL_NAME) --wait
+
+watch:
+	kaggle kernels output $(USERNAME)/$(KERNEL_NAME) --watch
 
 status:
-	kaggle kernels status merongetaneh/CoTools
+	kaggle kernels status $(USERNAME)/$(KERNEL_NAME)
 
 install:
 	pip install -r package.txt
-
-# kaggle kernels output your-kaggle-username/your-kernel-name --watch
