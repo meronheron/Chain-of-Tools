@@ -13,7 +13,7 @@ def main(config, logger):
     # * 加载模型参数 
     if config.load_toolcalling_checkpoint:
         # model.sl_judge(config.judge_checkpoint_dir, "load")
-        model.sl_retriever(config.retriever_checkpoint_dir, "load")
+        model.sl_retriever(config.retriever_checkpoint_dir, "train")
 
     # dataset_dir_dict = config.dataset_dir
     # dataset_dir_dict = {"gsm8k_xl":config.dataset_dir["gsm8k_xl"]}
