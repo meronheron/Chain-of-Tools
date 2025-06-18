@@ -1,4 +1,3 @@
-
 from rich.progress import track
 
 import torch
@@ -39,6 +38,7 @@ def tool_judge_train(config, logger, model, dataset_dir_dict, mode="train+test")
                         foundation_output = model.foundation_model(data["input_ids"], output_hidden_states=True)
                 judge_logits = model.tool_judging(foundation_output.hidden_states[-1][0])
                 judge_logits = torch.sigmoid(judge_logits)
+                judge_logits = judge_logits.to(dtype=torch.float16)
                 loss = F.binary_cross_entropy(judge_logits, data["judge_labels"][0].float())
                 loss.backward()
 
@@ -52,9 +52,7 @@ def tool_judge_train(config, logger, model, dataset_dir_dict, mode="train+test")
                 counter_dict["predict"] += predict_num
                 counter_dict["gold"] += gold_num
 
-                if step %100 == 0 and step > 1:
-                    # p = counter_dict["correct"] / (counter_dict["predict"] + 1e-10)
-                    # r = counter_dict["correct"] / (counter_dict["gold"] + 1e-10)
+                if step % 100 == 0 and step > 1:
                     f1 = 2 * counter_dict["correct"] / (counter_dict["predict"] + counter_dict["gold"] + 1e-10)
                     logger.info('step:{}/{}   '.format(step+1,all_steps)+'loss:'+str(loss.item())+' F1:'+str(f1))
                     counter_dict["correct"], counter_dict["predict"], counter_dict["gold"] = 0, 0, 0
