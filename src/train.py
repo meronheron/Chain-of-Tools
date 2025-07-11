@@ -68,8 +68,9 @@ def tool_judge_train(config, logger, model, dataset_dir_dict, mode="train+test")
                 model.eval()
                 dev_dataloader = DataLoader(dev_dataset, batch_size=1, shuffle=True, collate_fn=collater)
                 for step, data in track(enumerate(dev_dataloader), description='Evaling ...'):
-                    for key,_ in data.items():
-                        data[key] = data[key].cuda()
+                    for key, value in data.items():
+                        if isinstance(value, torch.Tensor):
+                            data[key] = value.cuda()    
                     with torch.no_grad():
                         foundation_output = model.foundation_model(data["input_ids"], output_hidden_states=True)
                         judge_logits = model.tool_judging(foundation_output.hidden_states[-1][0])
