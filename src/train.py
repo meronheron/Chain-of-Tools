@@ -33,13 +33,15 @@ def tool_judge_train(config, logger, model, dataset_dir_dict, mode="train+test")
             logger.info("------ Training Epoch {} ------".format(epoch))
             for step, data in track(enumerate(train_dataloader),description='Training epoch {} ...'.format(epoch)):
                 all_steps = len(train_dataloader)
-                for key,_ in data.items():
-                    data[key] = data[key].cuda()
+                for key, value in data.items():
+                    if isinstance(value, torch.Tensor):
+                        data[key] = value.cuda()
                 with torch.no_grad():
                         foundation_output = model.foundation_model(data["input_ids"], output_hidden_states=True)
                 judge_logits = model.tool_judging(foundation_output.hidden_states[-1][0])
                 judge_logits = torch.sigmoid(judge_logits)
-                loss = F.binary_cross_entropy(judge_logits, data["judge_labels"][0].float())
+                target = data["judge_labels"][0].to(dtype=judge_logits.dtype)
+                loss = F.binary_cross_entropy(judge_logits, target)
                 loss.backward()
 
                 if step % config.gradient_accumulation_steps == 0:
