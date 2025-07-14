@@ -1,4 +1,3 @@
-
 from rich.progress import track
 
 import torch
@@ -37,10 +36,14 @@ def tool_judge_train(config, logger, model, dataset_dir_dict, mode="train+test")
                     if isinstance(value, torch.Tensor):
                         data[key] = value.cuda()
                 with torch.no_grad():
-                        foundation_output = model.foundation_model(data["input_ids"], output_hidden_states=True)
+                    foundation_output = model.foundation_model(data["input_ids"], output_hidden_states=True)
                 judge_logits = model.tool_judging(foundation_output.hidden_states[-1][0])
                 judge_logits = torch.sigmoid(judge_logits)
-                target = data["judge_labels"][0].to(dtype=judge_logits.dtype)
+
+                target = data["judge_labels"][0].float().to(judge_logits.device)
+                if target.max() > 1 or target.min() < 0:
+                    target = (target > 0).float()
+
                 loss = F.binary_cross_entropy(judge_logits, target)
                 loss.backward()
 
@@ -49,14 +52,12 @@ def tool_judge_train(config, logger, model, dataset_dir_dict, mode="train+test")
                     optimizer.step()
                     model.zero_grad()
 
-                correct_num, predict_num, gold_num = tool_judge_eval_calculate(judge_logits.round().int(), data["judge_labels"][0])
+                correct_num, predict_num, gold_num = tool_judge_eval_calculate(judge_logits.round().int(), target.int())
                 counter_dict["correct"] += correct_num
                 counter_dict["predict"] += predict_num
                 counter_dict["gold"] += gold_num
 
-                if step %100 == 0 and step > 1:
-                    # p = counter_dict["correct"] / (counter_dict["predict"] + 1e-10)
-                    # r = counter_dict["correct"] / (counter_dict["gold"] + 1e-10)
+                if step % 100 == 0 and step > 1:
                     f1 = 2 * counter_dict["correct"] / (counter_dict["predict"] + counter_dict["gold"] + 1e-10)
                     logger.info('step:{}/{}   '.format(step+1,all_steps)+'loss:'+str(loss.item())+' F1:'+str(f1))
                     counter_dict["correct"], counter_dict["predict"], counter_dict["gold"] = 0, 0, 0
@@ -77,7 +78,12 @@ def tool_judge_train(config, logger, model, dataset_dir_dict, mode="train+test")
                         foundation_output = model.foundation_model(data["input_ids"], output_hidden_states=True)
                         judge_logits = model.tool_judging(foundation_output.hidden_states[-1][0])
                         judge_logits = torch.sigmoid(judge_logits)
-                    correct_num, predict_num, gold_num = tool_judge_eval_calculate(judge_logits.round().int(), data["judge_labels"][0])
+
+                    target = data["judge_labels"][0].float().to(judge_logits.device)
+                    if target.max() > 1 or target.min() < 0:
+                        target = (target > 0).float()
+
+                    correct_num, predict_num, gold_num = tool_judge_eval_calculate(judge_logits.round().int(), target.int())
                     eval_counter_dict["correct"] += correct_num
                     eval_counter_dict["predict"] += predict_num
                     eval_counter_dict["gold"] += gold_num     
@@ -87,9 +93,8 @@ def tool_judge_train(config, logger, model, dataset_dir_dict, mode="train+test")
                 logger.info('Eval: P: {}  R: {}  F1: {} '.format(str(p),str(r),str(f1)))
             if mode == "test":
                 break
-        if epoch>=1:
+        if epoch >= 1:
             model.sl_judge(config.model_dir, "save", "epoch_"+str(epoch))
-    
 
 def tool_judge_eval_calculate(predict_labels, gold_labels):
     correct_num = (predict_labels * gold_labels).eq(1).sum()
