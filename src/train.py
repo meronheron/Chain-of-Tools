@@ -8,7 +8,6 @@ from torch.utils.data import DataLoader
 from WillMindS.utils.io import read_JSON
 from corpus import judge_Dataset, judge_Collater, retriever_Dataset, retriever_Collater
 
-
 def tool_judge_train(config, logger, model, dataset_dir_dict, mode="train+test"):
     logger.info("============ Training tool judger ============")
 
@@ -30,7 +29,6 @@ def tool_judge_train(config, logger, model, dataset_dir_dict, mode="train+test")
             for step, data in track(enumerate(train_dataloader), description=f'Training epoch {epoch} ...'):
                 all_steps = len(train_dataloader)
 
-                # Move tensors to CUDA
                 for key, value in data.items():
                     if isinstance(value, torch.Tensor):
                         data[key] = value.to("cuda")
@@ -39,17 +37,9 @@ def tool_judge_train(config, logger, model, dataset_dir_dict, mode="train+test")
                     foundation_output = model.foundation_model(data["input_ids"], output_hidden_states=True)
 
                 judge_logits = model.tool_judging(foundation_output.hidden_states[-1][0])
-                judge_logits = torch.sigmoid(judge_logits)
-
-                # Ensure target is same shape and type as judge_logits
                 target = data["judge_labels"][0].to("cuda").float()
-                judge_logits = judge_logits.float()
 
-                # Validate logits are in [0,1] for BCE
-                if not torch.all((0 <= judge_logits) & (judge_logits <= 1)):
-                    raise ValueError("Logits out of range for binary_cross_entropy")
-
-                loss = F.binary_cross_entropy(judge_logits, target)
+                loss = F.binary_cross_entropy_with_logits(judge_logits, target)
                 loss.backward()
 
                 if step % config.gradient_accumulation_steps == 0:
@@ -57,7 +47,8 @@ def tool_judge_train(config, logger, model, dataset_dir_dict, mode="train+test")
                     optimizer.step()
                     model.zero_grad()
 
-                correct_num, predict_num, gold_num = tool_judge_eval_calculate(judge_logits.round().int(), data["judge_labels"][0])
+                pred_labels = torch.sigmoid(judge_logits).round().int()
+                correct_num, predict_num, gold_num = tool_judge_eval_calculate(pred_labels, data["judge_labels"][0])
                 counter_dict["correct"] += correct_num
                 counter_dict["predict"] += predict_num
                 counter_dict["gold"] += gold_num
@@ -80,8 +71,8 @@ def tool_judge_train(config, logger, model, dataset_dir_dict, mode="train+test")
                     with torch.no_grad():
                         foundation_output = model.foundation_model(data["input_ids"], output_hidden_states=True)
                         judge_logits = model.tool_judging(foundation_output.hidden_states[-1][0])
-                        judge_logits = torch.sigmoid(judge_logits)
-                    correct_num, predict_num, gold_num = tool_judge_eval_calculate(judge_logits.round().int(), data["judge_labels"][0])
+                        pred_labels = torch.sigmoid(judge_logits).round().int()
+                    correct_num, predict_num, gold_num = tool_judge_eval_calculate(pred_labels, data["judge_labels"][0])
                     eval_counter_dict["correct"] += correct_num
                     eval_counter_dict["predict"] += predict_num
                     eval_counter_dict["gold"] += gold_num
