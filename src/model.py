@@ -60,16 +60,16 @@ class LLM_with_tools(nn.Module):
         # 选择调用什么工具
         if self.config.cal_seq:
             self.retriever_query = MambaBlock(self.hidden_size).to("cuda:0")
-            self.retriever_tool_selection = MambaBlock(self.hidden_size).to("cuda:1")
+            self.retriever_tool_selection = MambaBlock(self.hidden_size).to("cuda:0")
             # self.retriever_tool_parameter = MambaBlock(self.hidden_size).to("cuda:1")
         else:
             if self.config.use_mamba:
                 self.retriever_query = MambaBlock(self.hidden_size).to("cuda:0")
-                self.retriever_tool_selection = MambaBlock(self.hidden_size).to("cuda:1")
+                self.retriever_tool_selection = MambaBlock(self.hidden_size).to("cuda:0")
                 # self.retriever_tool_parameter = MambaBlock(self.hidden_size).to("cuda:1")
             else:
                 self.retriever_query = MLPLayer(self.hidden_size, self.intermediate_size, self.retrieval_size).to("cuda:0")
-                self.retriever_tool_selection = MLPLayer(self.hidden_size, self.intermediate_size, self.retrieval_size).to("cuda:1")
+                self.retriever_tool_selection = MLPLayer(self.hidden_size, self.intermediate_size, self.retrieval_size).to("cuda:0")
                 # self.retriever_tool_parameter = MLPLayer(self.hidden_size, self.intermediate_size, self.retrieval_size).to("cuda:1")
         
         self.w_tensor = Tensor_Weighting(self.hidden_size)
