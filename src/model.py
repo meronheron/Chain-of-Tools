@@ -195,6 +195,7 @@ class LLM_with_tools(nn.Module):
         self.tokenizer.padding_side = 'right'
         self.tokenizer.add_bos_token = True
         self.tokenizer.add_eos_token = True
+        self.foundation_model.eval( )
         for dataset_name in dataset_name_list:
             for tool_name in self.tool_database[dataset_name]["tool_information"]:
                 tool_information_text = prompt_tool_retriever(tool_name, self.tool_database[dataset_name]["tool_information"][tool_name]["tool_description"])
@@ -203,7 +204,6 @@ class LLM_with_tools(nn.Module):
                                     add_special_tokens=True, padding=True, return_tensors='pt', return_attention_mask=True).to('cuda')
                 # 计算tool vector
                 with torch.no_grad():
-                    self.foundation_model.eval( )
                     tool_output = self.foundation_model(input_ids=tokenized_tool.input_ids, attention_mask=tokenized_tool.attention_mask, output_hidden_states=True)
                     tool_pos_id = torch.where(tokenized_tool.input_ids[0] == self.tokenizer.eos_token_id)[0][0].item()
                     hidden_state = tool_output.hidden_states[-1][0][tool_pos_id]
